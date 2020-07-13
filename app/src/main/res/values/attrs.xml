@@ -1,7 +1,7 @@
 <resources>
     <declare-styleable name="RingCountDownView">
         <attr name="RingCountDownView_ring_width" format="dimension" />
-        <attr name="RingCountDownView_ring_space" format="dimension" />
+        <attr name="RingCountDownView_ring_margin" format="dimension" />
     </declare-styleable>
 
 </resources>

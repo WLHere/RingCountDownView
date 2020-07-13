@@ -42,21 +42,21 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
         setWillNotDraw(false)
 
         var ringWidth: Int
-        var ringSpace: Int
+        var ringMargin: Int
 
         val defWidth = (context.resources.displayMetrics.density * 10 + 0.5f).toInt()
         if (attrs != null) {
             val ta = context.obtainStyledAttributes(attrs, R.styleable.RingCountDownView)
             ringWidth = ta.getDimensionPixelSize(R.styleable.RingCountDownView_RingCountDownView_ring_width, defWidth)
-            ringSpace = ta.getDimensionPixelSize(R.styleable.RingCountDownView_RingCountDownView_ring_space, defWidth)
+            ringMargin = ta.getDimensionPixelSize(R.styleable.RingCountDownView_RingCountDownView_ring_margin, defWidth)
             ta.recycle()
         } else {
             ringWidth = defWidth
-            ringSpace = defWidth
+            ringMargin = defWidth
         }
 
         mRingWidth = ringWidth
-        mRingSpace = ringSpace
+        mRingSpace = ringMargin
         mContentPadding = mRingWidth + mRingSpace
     }
 
