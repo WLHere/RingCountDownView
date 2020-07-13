@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+
+    <com.bwl.ringcountdownview.RingCountDownView
+        android:id="@+id/countDown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="#00ff00"
+        app:RingCountDownView_ring_space="10dp"
+        app:RingCountDownView_ring_width="10dp">
+
+        <View
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:background="#ff0000" />
+    </com.bwl.ringcountdownview.RingCountDownView>
+
+</RelativeLayout>
