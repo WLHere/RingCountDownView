@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 
@@ -125,6 +126,7 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
         if (canvas == null) {
             return
         }
+        val startTime = System.currentTimeMillis()
         var tempBitmap = cachedBitmap
         if (tempBitmap == null || tempBitmap.width != canvas.width || tempBitmap.height != canvas.height) {
             tempBitmap?.apply {
@@ -186,6 +188,9 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
         if (mState == STATE_STARTED) {
             invalidate()
         }
+
+        val endTime = System.currentTimeMillis()
+        Log.d("bwl", "time: ${endTime - startTime}ms")
     }
 
     private var cachedBitmapForChild: Bitmap? = null
