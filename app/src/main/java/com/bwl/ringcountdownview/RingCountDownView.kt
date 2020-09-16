@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.Log
 import android.view.ViewGroup
 
 private const val DEFAULT_TIME = 2000L
@@ -181,6 +182,7 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
         }
 
         val endTime = System.currentTimeMillis()
+        Log.d("bwl", "${endTime - startTime}ms");
     }
 
     override fun dispatchDraw(canvas: Canvas?) {
