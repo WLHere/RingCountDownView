@@ -1,11 +1,11 @@
 package com.bwl.ringcountdownview
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Path
+import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
-import android.util.Log
-import android.view.View
 import android.view.ViewGroup
 
 private const val DEFAULT_TIME = 2000L
@@ -26,7 +26,13 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
     private var mTotalTime = DEFAULT_TIME
     private var mStartTime = 0L
     private var mState = STATE_INIT
-    private val mPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val mOutCirclePath = Path()
+    private val mInnerCirclePath = Path()
+    private val mSpaceCirclePath = Path()
+    private val mSweepAnglePath = Path()
+    private var mCenterX = 0f
+    private var mCenterY = 0f
+    private var mRadius = 0f
     private var mListener: CountDownListener? = null
 
     constructor(context: Context) : this(context, null, 0)
@@ -38,8 +44,6 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
     }
 
     init {
-        // xfermode不支持硬件加速，所以需要关闭硬件加速
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         setWillNotDraw(false)
 
         var ringWidth: Int
@@ -119,125 +123,75 @@ class RingCountDownView(context: Context, attrs: AttributeSet?, defStyleAttr: In
         }
     }
 
-    private var cachedBitmap: Bitmap? = null
-
     override fun draw(canvas: Canvas?) {
         // 绘制缺角
         if (canvas == null) {
+            super.draw(canvas)
             return
         }
         val startTime = System.currentTimeMillis()
-        var tempBitmap = cachedBitmap
-        if (tempBitmap == null || tempBitmap.width != canvas.width || tempBitmap.height != canvas.height) {
-            tempBitmap?.apply {
-                if (!isRecycled) {
-                    recycle()
-                }
-            }
-            tempBitmap = Bitmap.createBitmap(canvas.width, canvas.height, Bitmap.Config.ARGB_8888)
-            cachedBitmap = tempBitmap
-        }
-
-        val proxyCanvas = Canvas(tempBitmap!!)
-        super.draw(proxyCanvas)
-        val startAngle = -90f
+        mCenterX = canvas.width / 2f
+        mCenterY = canvas.height / 2f
+        mRadius = mCenterX
 
         val sweepAngle = when (mState) {
             STATE_INIT -> 0f
             STATE_STARTED -> {
                 val passedTime = (SystemClock.elapsedRealtime() - mStartTime).toFloat()
                 if (passedTime < mTotalTime) {
-                    -passedTime / mTotalTime * 360
+                    passedTime / mTotalTime * 360
                 } else {
                     mState = STATE_FINISHED
                     notifyOnFinished()
-                    -360f
+                    360f
                 }
             }
-            STATE_FINISHED -> -360f
+            STATE_FINISHED -> 360f
             else -> 0f
         }
 
-        // 绘制圆形和缺角区域
-        val centerX = canvas.width / 2f
-        val centerY = canvas.height / 2f
-        // 外环
-        mPaint.xfermode = null
-        canvas.drawCircle(centerX, centerY, centerX, mPaint)
-        mPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-        canvas.drawCircle(centerX, centerY, centerX - mRingWidth, mPaint)
+        mOutCirclePath.reset()
+        mOutCirclePath.addCircle(mCenterX, mCenterY, mRadius, Path.Direction.CW)
+        mInnerCirclePath.reset()
+        mInnerCirclePath.addCircle(mCenterX, mCenterY, mRadius - mRingWidth - mRingSpace, Path.Direction.CW)
+        mSpaceCirclePath.reset()
+        mSpaceCirclePath.addCircle(mCenterX, mCenterY, mRadius - mRingWidth, Path.Direction.CW)
+        mSweepAnglePath.reset()
+        mSweepAnglePath.moveTo(mCenterX, mCenterY)
+        mSweepAnglePath.lineTo(mCenterX, 0f)
+        mSweepAnglePath.arcTo(RectF(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat()), 270f, -sweepAngle)
+        mSweepAnglePath.close()
 
-        // arc缺角
-        mPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
-        canvas.drawArc(
-            RectF(-1f, -1f, canvas.width + 1f, canvas.height + 1f),
-            startAngle,
-            sweepAngle,
-            true,
-            mPaint
-        )
 
-        // 内圆
-        mPaint.xfermode = null
-        canvas.drawCircle(centerX, centerY, centerX - mContentPadding, mPaint)
 
-        // 绘制原有图形
-        mPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(tempBitmap, 0f, 0f, mPaint)
+        mOutCirclePath.let {
+            it.op(mSpaceCirclePath, Path.Op.DIFFERENCE)
+            it.op(mSweepAnglePath, Path.Op.DIFFERENCE)
+            it.op(mInnerCirclePath, Path.Op.UNION)
+        }
+
+
+        canvas.save()
+        canvas.clipPath(mOutCirclePath)
+        super.draw(canvas)
+        canvas.restore()
 
         if (mState == STATE_STARTED) {
             invalidate()
         }
 
         val endTime = System.currentTimeMillis()
-        Log.d("bwl", "time: ${endTime - startTime}ms")
     }
-
-    private var cachedBitmapForChild: Bitmap? = null
-    private var cachedBitmapForChildCut: Bitmap? = null
 
     override fun dispatchDraw(canvas: Canvas?) {
         if (canvas == null) {
+            super.draw(canvas)
             return
         }
-        var tempBitmap = cachedBitmapForChild
-        if (tempBitmap == null || tempBitmap.width != canvas.width || tempBitmap.height != canvas.height) {
-            tempBitmap?.apply {
-                if (!isRecycled) {
-                    recycle()
-                }
-            }
-            tempBitmap = Bitmap.createBitmap(canvas.width, canvas.height, Bitmap.Config.ARGB_8888)
-            cachedBitmapForChild = tempBitmap
-        }
-        val proxyCanvas = Canvas(tempBitmap!!)
-
-        var tempCutBitmap = cachedBitmapForChildCut
-        if (tempCutBitmap == null || tempBitmap.width != canvas.width || tempBitmap.height != canvas.height) {
-            tempCutBitmap?.apply {
-                if (!isRecycled) {
-                    recycle()
-                }
-            }
-            tempCutBitmap =
-                Bitmap.createBitmap(canvas.width, canvas.height, Bitmap.Config.ARGB_8888)
-            cachedBitmapForChildCut = tempCutBitmap
-        }
-        val cutProxyCanvas = Canvas(tempCutBitmap!!)
-
-        super.dispatchDraw(proxyCanvas)
-
-        val centerX = canvas.width / 2f
-        val centerY = canvas.height / 2f
-        // 内圆
-        mPaint.xfermode = null
-        cutProxyCanvas.drawCircle(centerX, centerY, centerX - mContentPadding, mPaint)
-        // 绘制原有图形
-        mPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        cutProxyCanvas.drawBitmap(tempBitmap, 0f, 0f, mPaint)
-
-        mPaint.xfermode = null
-        canvas.drawBitmap(tempCutBitmap, 0f, 0f, mPaint)
+        canvas.save()
+        canvas.clipPath(mInnerCirclePath)
+        super.dispatchDraw(canvas)
+        canvas.restore()
     }
 
     private fun notifyOnFinished() {
